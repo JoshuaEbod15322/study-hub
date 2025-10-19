@@ -11,9 +11,9 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-// import { FcGoogle } from "react-icons/fc"
-// import { FaFacebook } from "react-icons/fa"
-// import { FaEye, FaEyeSlash } from "react-icons/fa"
+import { FcGoogle } from "react-icons/fc"
+import { FaFacebook } from "react-icons/fa"
+import { FaEye, FaEyeSlash } from "react-icons/fa"
 import './App.css'
 
 export default function login() {

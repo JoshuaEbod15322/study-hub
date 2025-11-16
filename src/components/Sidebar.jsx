@@ -10,6 +10,7 @@ import {
   FaChevronDown,
   FaPlus,
   FaClock,
+  FaCalendarAlt,
 } from "react-icons/fa";
 import { Badge } from "@/components/ui/badge";
 
@@ -18,6 +19,7 @@ export function Sidebar({
   pendingApprovals,
   onPost,
   onApprovals,
+  onReservations,
   onSignOut,
   onSettingsToggle,
   settingsOpen,
@@ -67,6 +69,15 @@ export function Sidebar({
                       {pendingApprovals.length}
                     </Badge>
                   )}
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={onReservations}
+                  className="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50 group w-full text-left"
+                >
+                  <FaCalendarAlt className="w-5 h-5 group-hover:text-purple-500" />
+                  <span>Reservations</span>
                 </button>
               </li>
             </>

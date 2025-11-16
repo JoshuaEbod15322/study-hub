@@ -26,7 +26,7 @@ function PublicRoute({ children }) {
 }
 
 function AppRoutes() {
-  const { loading } = useAuth();
+  const { user, loading } = useAuth(); // Add user here
 
   if (loading) {
     return (
@@ -38,7 +38,17 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      {/* Redirect to login if not authenticated, dashboard if authenticated */}
+      <Route
+        path="/"
+        element={
+          user ? (
+            <Navigate to="/dashboard" replace />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
       <Route
         path="/login"
         element={

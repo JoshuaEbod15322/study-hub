@@ -1,4 +1,5 @@
 // src/components/Modals.jsx
+import { useState } from "react"; // Add this import
 import {
   Dialog,
   DialogContent,
@@ -23,7 +24,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { FaCheck, FaTimes, FaComment, FaCalendar } from "react-icons/fa";
+import {
+  FaCheck,
+  FaTimes,
+  FaComment,
+  FaCalendar,
+  FaTrash,
+} from "react-icons/fa";
 import { format } from "date-fns";
 
 // Generate time options
@@ -535,13 +542,27 @@ export function CommentsModal({
   );
 }
 
+// Updated ApprovalsModal with delete functionality
+// Updated ApprovalsModal with all user info and reservation details
 export function ApprovalsModal({
   open,
   onOpenChange,
   pendingApprovals,
   onApprove,
   onReject,
+  onDelete,
 }) {
+  const [processingId, setProcessingId] = useState(null);
+
+  const handleAction = async (action, reservationId) => {
+    setProcessingId(reservationId);
+    try {
+      await action(reservationId);
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[700px] max-h-[80vh]">
@@ -566,48 +587,153 @@ export function ApprovalsModal({
                   <h4 className="font-semibold text-lg text-gray-900">
                     {approval.study_place?.name}
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3 text-sm">
-                    <div>
-                      <span className="font-medium text-gray-700">
-                        Requested by:
+                  <p className="text-sm text-gray-600 mb-3">
+                    {approval.study_place?.location}
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    {/* User Information */}
+                    <div className="space-y-2">
+                      <div>
+                        <span className="font-medium text-gray-700">
+                          Requested by:
+                        </span>
+                        <p className="text-gray-600">
+                          {approval.user?.name || "Unknown User"}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">
+                          Email:
+                        </span>
+                        <p className="text-gray-600">
+                          {approval.user?.email || "No email"}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">
+                          User Role:
+                        </span>
+                        <p className="text-gray-600 capitalize">
+                          {approval.user?.role?.replace("_", " ") || "Unknown"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Reservation Details */}
+                    <div className="space-y-2">
+                      <div>
+                        <span className="font-medium text-gray-700">
+                          Reservation Date:
+                        </span>
+                        <p className="text-gray-600">
+                          {approval.reservation_date}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">
+                          Time Slot:
+                        </span>
+                        <p className="text-gray-600">
+                          {approval.start_time} - {approval.end_time}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">
+                          Duration:
+                        </span>
+                        <p className="text-gray-600">
+                          {(() => {
+                            const start = parseInt(
+                              approval.start_time?.split(":")[0]
+                            );
+                            const end = parseInt(
+                              approval.end_time?.split(":")[0]
+                            );
+                            if (!isNaN(start) && !isNaN(end)) {
+                              return `${end - start} hour${
+                                end - start !== 1 ? "s" : ""
+                              }`;
+                            }
+                            return "Unknown duration";
+                          })()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status and Additional Info */}
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="font-medium text-gray-700">
+                          Status:
+                        </span>
+                        <span
+                          className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            approval.status === "pending"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : approval.status === "confirmed"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {approval.status?.charAt(0).toUpperCase() +
+                            approval.status?.slice(1) || "Pending"}
+                        </span>
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        Requested on:{" "}
+                        {format(
+                          new Date(approval.created_at),
+                          "MMM d, yyyy 'at' h:mm a"
+                        )}
                       </span>
-                      <p className="text-gray-600">{approval.user?.name}</p>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-700">Email:</span>
-                      <p className="text-gray-600">{approval.user?.email}</p>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-700">Date:</span>
-                      <p className="text-gray-600">
-                        {approval.reservation_date}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-700">
-                        Time Slot:
-                      </span>
-                      <p className="text-gray-600">
-                        {approval.start_time} - {approval.end_time}
-                      </p>
                     </div>
                   </div>
                 </div>
+
                 <div className="flex gap-2 ml-4">
                   <Button
                     size="sm"
-                    onClick={() => onApprove(approval.id)}
+                    onClick={() => handleAction(onApprove, approval.id)}
+                    disabled={processingId === approval.id}
                     className="bg-green-600 hover:bg-green-700 h-10 w-10"
+                    title="Accept Reservation"
                   >
-                    <FaCheck className="w-4 h-4" />
+                    {processingId === approval.id ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <FaCheck className="w-4 h-4" />
+                    )}
                   </Button>
                   <Button
                     size="sm"
                     variant="destructive"
-                    onClick={() => onReject(approval.id)}
+                    onClick={() => handleAction(onReject, approval.id)}
+                    disabled={processingId === approval.id}
                     className="h-10 w-10"
+                    title="Reject Reservation"
                   >
-                    <FaTimes className="w-4 h-4" />
+                    {processingId === approval.id ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <FaTimes className="w-4 h-4" />
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleAction(onDelete, approval.id)}
+                    disabled={processingId === approval.id}
+                    className="h-10 w-10 border-red-300 text-red-600 hover:bg-red-50"
+                    title="Delete Reservation"
+                  >
+                    {processingId === approval.id ? (
+                      <div className="w-3 h-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <FaTrash className="w-3 h-3" />
+                    )}
                   </Button>
                 </div>
               </div>
@@ -629,8 +755,154 @@ export function ApprovalsModal({
         {pendingApprovals.length > 0 && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
             <p className="text-sm text-blue-800 text-center">
-              Click the checkmark to approve or the X to reject reservation
-              requests.
+              • <strong>Checkmark</strong>: Accept reservation (moves to
+              Reservations)
+              <br />• <strong>Red X</strong>: Reject reservation
+              <br />• <strong>Trash</strong>: Delete reservation completely
+            </p>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+// Updated ReservationsModal to show accepted reservations and allow deletion
+export function ReservationsModal({
+  open,
+  onOpenChange,
+  userReservations,
+  onDeleteReservation,
+  userProfile,
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[800px] max-h-[80vh]">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-bold text-gray-900">
+            My Place Reservations
+          </DialogTitle>
+          <p className="text-sm text-gray-600 mt-1">
+            {userReservations.length} reservation
+            {userReservations.length !== 1 ? "s" : ""} for your study places
+          </p>
+        </DialogHeader>
+
+        <div className="max-h-96 overflow-y-auto space-y-4">
+          {userReservations.map((reservation) => (
+            <div
+              key={reservation.id}
+              className="border rounded-lg p-4 bg-white shadow-sm"
+            >
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h4 className="font-semibold text-lg text-gray-900">
+                        {reservation.study_place?.name}
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        {reservation.study_place?.location}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          reservation.status === "confirmed"
+                            ? "bg-green-100 text-green-800"
+                            : reservation.status === "pending"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : reservation.status === "cancelled"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {reservation.status === "confirmed"
+                          ? "Accepted"
+                          : reservation.status === "pending"
+                          ? "Pending"
+                          : reservation.status.charAt(0).toUpperCase() +
+                            reservation.status.slice(1)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium text-gray-700">
+                        Reserved by:
+                      </span>
+                      <p className="text-gray-600">{reservation.user?.name}</p>
+                      <p className="text-gray-500 text-xs">
+                        {reservation.user?.email}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">
+                        Date & Time:
+                      </span>
+                      <p className="text-gray-600">
+                        {reservation.reservation_date}
+                      </p>
+                      <p className="text-gray-600">
+                        {reservation.start_time} - {reservation.end_time}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">
+                        User Role:
+                      </span>
+                      <p className="text-gray-600 capitalize">
+                        {reservation.user?.role?.replace("_", " ") || "Unknown"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {reservation.notes && (
+                    <div className="mt-3">
+                      <span className="font-medium text-gray-700 text-sm">
+                        Notes:
+                      </span>
+                      <p className="text-gray-600 text-sm mt-1">
+                        {reservation.notes}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-2 ml-4">
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => onDeleteReservation(reservation.id)}
+                    className="h-10 w-10"
+                    title="Delete Reservation"
+                  >
+                    <FaTrash className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {userReservations.length === 0 && (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaCalendar className="w-8 h-8 text-blue-600" />
+              </div>
+              <p className="text-gray-500 text-lg">No reservations yet</p>
+              <p className="text-sm text-gray-400 mt-1">
+                Students and teachers will appear here when they reserve your
+                study places.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {userReservations.length > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+            <p className="text-sm text-blue-800 text-center">
+              You can delete reservations by clicking the trash button. This
+              will permanently remove the reservation regardless of status.
             </p>
           </div>
         )}
